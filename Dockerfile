@@ -33,11 +33,18 @@ COPY ros2_ws/ /opt/plastifind/ros2_ws/
 COPY scripts/ /opt/plastifind/scripts/
 COPY docker/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh /opt/plastifind/scripts/healthcheck.sh \
+
+RUN chmod +x \
+    /entrypoint.sh \
+    /opt/plastifind/scripts/healthcheck.sh \
+    /opt/plastifind/scripts/validate_probot_description.sh \
     && source /opt/ros/jazzy/setup.bash \
-    && if find /opt/plastifind/ros2_ws/src -name package.xml -print -quit | grep -q .; then \
-         cd /opt/plastifind/ros2_ws && rosdep update && rosdep install --from-paths src --ignore-src -r -y && colcon build --symlink-install; \
-       fi
+    && cd /opt/plastifind/ros2_ws \
+    && rosdep update \
+    && rosdep install --from-paths src --ignore-src -r -y \
+    && colcon build --symlink-install \
+    && /opt/plastifind/scripts/validate_probot_description.sh
+
 
 ENV ROS_DISTRO=jazzy
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
