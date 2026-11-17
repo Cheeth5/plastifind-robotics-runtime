@@ -38,7 +38,7 @@ while (( SECONDS < DEADLINE )); do
       /controller_manager/list_controllers \
       controller_manager_msgs/srv/ListControllers "{}" 2>&1 || true)"
 
-    ACTIVE_COUNT="$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -c 'state=active' || true)"
+    ACTIVE_COUNT="$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)"
     if [[ "$ACTIVE_COUNT" -ge 2 ]]; then
       break
     fi
@@ -47,7 +47,7 @@ while (( SECONDS < DEADLINE )); do
   sleep 3
 done
 
-if [[ "$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -c 'state=active' || true)" -lt 2 ]]; then
+if [[ "$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)" -lt 2 ]]; then
   echo "Timed out waiting for active wheel controllers."
   echo "Last controller response:"
   printf '%s\n' "$CONTROLLER_OUTPUT"
