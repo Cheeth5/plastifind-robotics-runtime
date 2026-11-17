@@ -83,5 +83,21 @@ if ! timeout 20s ros2 topic echo --once /diff_drive_controller/odom nav_msgs/msg
   exit 1
 fi
 
-echo "PRO-BOT Gazebo smoke test PASSED."
-echo "Both wheel controllers are active; joint states and odometry are publishing."
+echo "Checking 2D LiDAR scan publication..."
+if ! timeout 30s ros2 topic echo --once /scan sensor_msgs/msg/LaserScan >/tmp/probot-scan.log 2>&1; then
+  echo "No /scan LaserScan message received."
+  cat "$LOG_FILE"
+  cat /tmp/probot-scan.log
+  exit 1
+fi
+
+echo "Checking IMU publication..."
+if ! timeout 30s ros2 topic echo --once /imu sensor_msgs/msg/Imu >/tmp/probot-imu.log 2>&1; then
+  echo "No /imu Imu message received."
+  cat "$LOG_FILE"
+  cat /tmp/probot-imu.log
+  exit 1
+fi
+
+echo "PRO-BOT Gazebo sensor smoke test PASSED."
+echo "Wheel controllers, joint states, odometry, LiDAR scan and IMU are publishing."
