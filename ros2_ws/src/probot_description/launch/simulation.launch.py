@@ -5,8 +5,8 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch.substitutions import Command
 from launch_ros.parameter_descriptions import ParameterValue
 
 
@@ -17,11 +17,9 @@ def generate_launch_description():
     robot_description_file = os.path.join(
         package_dir, 'urdf', 'probot.urdf.xacro'
     )
-
     world_file = os.path.join(
         package_dir, 'worlds', 'probot_test_world.sdf'
     )
-
     controller_config = os.path.join(
         package_dir, 'config', 'probot_controllers.yaml'
     )
@@ -36,16 +34,14 @@ def generate_launch_description():
         value_type=str
     )
 
+    # Server-only mode is intentional: cloud CI and container execution
+    # must not require a desktop, X server, or GPU-backed GUI.
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                gazebo_dir,
-                'launch',
-                'gz_sim.launch.py'
-            )
+            os.path.join(gazebo_dir, 'launch', 'gz_sim.launch.py')
         ),
         launch_arguments={
-            'gz_args': ['-r ', world_file]
+            'gz_args': ['-s -r ', world_file]
         }.items()
     )
 
