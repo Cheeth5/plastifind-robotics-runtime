@@ -2,31 +2,45 @@
 import os
 
 from ament_index_python.packages import get_package_share_directory
+
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import Command
+from launch.substitutions import Command, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
     package_dir = get_package_share_directory('probot_description')
+    gazebo_dir = get_package_share_directory('ros_gz_sim')
 
     robot_description_file = os.path.join(
         package_dir, 'urdf', 'probot.urdf.xacro'
     )
+
     world_file = os.path.join(
         package_dir, 'worlds', 'probot_test_world.sdf'
     )
 
-    robot_description = Command([
-        'xacro ', robot_description_file
-    ])
+    controller_config = os.path.join(
+        package_dir, 'config', 'probot_controllers.yaml'
+    )
+
+    robot_description = ParameterValue(
+        Command([
+            'xacro ',
+            robot_description_file,
+            ' controller_params_file:=',
+            controller_config
+        ]),
+        value_type=str
+    )
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(
-                get_package_share_directory('ros_gz_sim'),
+                gazebo_dir,
                 'launch',
                 'gz_sim.launch.py'
             )
@@ -39,11 +53,11 @@ def generate_launch_description():
     robot_state_publisher = Node(
         package='robot_state_publisher',
         executable='robot_state_publisher',
-        output='screen',
         parameters=[{
             'robot_description': robot_description,
             'use_sim_time': True
-        }]
+        }],
+        output='screen'
     )
 
     spawn_robot = Node(
@@ -59,8 +73,37 @@ def generate_launch_description():
         output='screen'
     )
 
+    joint_state_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'joint_state_broadcaster',
+            '--controller-manager', '/controller_manager'
+        ],
+        output='screen'
+    )
+
+    diff_drive_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=[
+            'diff_drive_controller',
+            '--controller-manager', '/controller_manager'
+        ],
+        output='screen'
+    )
+
+    start_controllers = TimerAction(
+        period=8.0,
+        actions=[
+            joint_state_broadcaster,
+            diff_drive_controller
+        ]
+    )
+
     return LaunchDescription([
         gazebo,
         robot_state_publisher,
-        spawn_robot
+        spawn_robot,
+        start_controllers
     ])
