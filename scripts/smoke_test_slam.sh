@@ -40,7 +40,15 @@ if [[ "$ACTIVE" -ne 1 ]]; then
   cat "$LOG_FILE"
   exit 1
 fi
-echo "Driving a controlled arc while SLAM receives LiDAR scans..."
+echo "Verifying LiDAR frame ID before mapping..."
+timeout 12s ros2 topic echo --once /scan sensor_msgs/msg/LaserScan >/tmp/probot-slam-scan.log 2>&1
+if ! grep -q "frame_id: lidar_link" /tmp/probot-slam-scan.log; then
+  echo "LiDAR frame_id is not lidar_link; SLAM cannot resolve the sensor transform."
+  grep -m1 "frame_id:" /tmp/probot-slam-scan.log || true
+  cat "$LOG_FILE"
+  exit 1
+fi
+echo "LiDAR frame is correct. Driving a controlled arc while SLAM receives scans..."
 timeout 25s ros2 topic pub -r 10 /diff_drive_controller/cmd_vel_unstamped geometry_msgs/msg/Twist "{linear: {x: 0.12}, angular: {z: 0.18}}" >/tmp/probot-slam-drive.log 2>&1 || DRIVE_STATUS=$?
 if [[ "${DRIVE_STATUS:-0}" -ne 0 && "${DRIVE_STATUS:-0}" -ne 124 && "${DRIVE_STATUS:-0}" -ne 130 ]]; then
   echo "Velocity command failed."
@@ -49,7 +57,7 @@ if [[ "${DRIVE_STATUS:-0}" -ne 0 && "${DRIVE_STATUS:-0}" -ne 124 && "${DRIVE_STA
   exit 1
 fi
 echo "Checking for a real SLAM map..."
-if ! timeout 60s ros2 topic echo --once /map nav_msgs/msg/OccupancyGrid >/tmp/probot-slam-map.log 2>&1; then
+if ! timeout 75s ros2 topic echo --once /map nav_msgs/msg/OccupancyGrid >/tmp/probot-slam-map.log 2>&1; then
   echo "SLAM Toolbox did not publish /map OccupancyGrid."
   echo "--- ROS nodes ---"
   ros2 node list 2>&1 || true
