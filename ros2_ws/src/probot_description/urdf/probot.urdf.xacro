@@ -1,6 +1,7 @@
 
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="probot">
+<xacro:arg name="controller_params_file" default=""/>
 
   <!-- PRO-BOT provisional dimensions (metres) -->
   <xacro:property name="chassis_length" value="0.72"/>
@@ -84,5 +85,45 @@
   <xacro:wheel name="front_right_wheel" x="${wheel_x}" y="${-wheel_y}"/>
   <xacro:wheel name="rear_left_wheel" x="${-wheel_x}" y="${wheel_y}"/>
   <xacro:wheel name="rear_right_wheel" x="${-wheel_x}" y="${-wheel_y}"/>
+
+  <!-- ROS 2 Control hardware interfaces -->
+  <ros2_control name="GazeboSimSystem" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+
+    <joint name="front_left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="rear_left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="front_right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+
+    <joint name="rear_right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <!-- Gazebo Harmonic ROS 2 Control plugin -->
+  <gazebo>
+    <plugin filename="gz_ros2_control-system"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <parameters>$(var controller_params_file)</parameters>
+    </plugin>
+  </gazebo>
+
 
 </robot>
