@@ -1,0 +1,88 @@
+
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="probot">
+
+  <!-- PRO-BOT provisional dimensions (metres) -->
+  <xacro:property name="chassis_length" value="0.72"/>
+  <xacro:property name="chassis_width" value="0.50"/>
+  <xacro:property name="chassis_height" value="0.12"/>
+  <xacro:property name="wheel_radius" value="0.115"/>
+  <xacro:property name="wheel_width" value="0.05"/>
+  <xacro:property name="wheel_x" value="0.23"/>
+  <xacro:property name="wheel_y" value="0.25"/>
+
+  <material name="chassis_blue">
+    <color rgba="0.05 0.25 0.38 1"/>
+  </material>
+  <material name="wheel_black">
+    <color rgba="0.08 0.08 0.08 1"/>
+  </material>
+
+  <link name="base_footprint"/>
+
+  <link name="base_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="25.0"/>
+      <inertia ixx="0.8" ixy="0" ixz="0"
+               iyy="1.2" iyz="0" izz="1.5"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+      <material name="chassis_blue"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="${chassis_length} ${chassis_width} ${chassis_height}"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Four independently rotating wheels -->
+  <xacro:macro name="wheel" params="name x y">
+    <link name="${name}">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <mass value="1.5"/>
+        <inertia ixx="0.01" ixy="0" ixz="0"
+                 iyy="0.01" iyz="0" izz="0.01"/>
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+        <material name="wheel_black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+        <geometry>
+          <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${name}_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${name}"/>
+      <origin xyz="${x} ${y} 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:wheel name="front_left_wheel" x="${wheel_x}" y="${wheel_y}"/>
+  <xacro:wheel name="front_right_wheel" x="${wheel_x}" y="${-wheel_y}"/>
+  <xacro:wheel name="rear_left_wheel" x="${-wheel_x}" y="${wheel_y}"/>
+  <xacro:wheel name="rear_right_wheel" x="${-wheel_x}" y="${-wheel_y}"/>
+
+</robot>
