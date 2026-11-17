@@ -73,7 +73,8 @@ def generate_launch_description():
         executable='spawner',
         arguments=[
             'joint_state_broadcaster',
-            '--controller-manager', '/controller_manager'
+            '--controller-manager', '/controller_manager',
+            '--param-file', controller_config
         ],
         output='screen'
     )
@@ -83,7 +84,8 @@ def generate_launch_description():
         executable='spawner',
         arguments=[
             'diff_drive_controller',
-            '--controller-manager', '/controller_manager'
+            '--controller-manager', '/controller_manager',
+            '--param-file', controller_config
         ],
         output='screen'
     )
