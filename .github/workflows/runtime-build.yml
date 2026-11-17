@@ -15,10 +15,10 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build ROS 2 Jazzy runtime
+  build-and-simulate:
+    name: Build and smoke-test PRO-BOT in Gazebo Harmonic
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -26,12 +26,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build runtime image (validation only)
+      - name: Build ROS 2 Jazzy runtime image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           push: false
+          load: true
           tags: plastifind/robotics-runtime:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run headless Gazebo and ROS 2 Control smoke test
+        run: |
+          docker run --rm --network host --shm-size=1g \
+            plastifind/robotics-runtime:ci \
+            bash /opt/plastifind/scripts/smoke_test_probot.sh
