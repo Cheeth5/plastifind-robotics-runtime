@@ -121,7 +121,7 @@
   <gazebo>
     <plugin filename="gz_ros2_control-system"
             name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-      <parameters>$(var controller_params_file)</parameters>
+      <parameters>$(arg controller_params_file)</parameters>
     </plugin>
   </gazebo>
 
