@@ -17,7 +17,7 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-echo "Waiting for wheel controllers..."
+echo "Waiting for wheel controllers and SLAM node..."
 DEADLINE=$((SECONDS + 150))
 ACTIVE=0
 while (( SECONDS < DEADLINE )); do
@@ -40,8 +40,8 @@ if [[ "$ACTIVE" -ne 1 ]]; then
   cat "$LOG_FILE"
   exit 1
 fi
-echo "Driving a short controlled arc to generate scan motion for SLAM..."
-timeout 12s ros2 topic pub -r 10 /diff_drive_controller/cmd_vel_unstamped geometry_msgs/msg/Twist "{linear: {x: 0.12}, angular: {z: 0.18}}" >/tmp/probot-slam-drive.log 2>&1 || DRIVE_STATUS=$?
+echo "Driving a controlled arc while SLAM receives LiDAR scans..."
+timeout 25s ros2 topic pub -r 10 /diff_drive_controller/cmd_vel_unstamped geometry_msgs/msg/Twist "{linear: {x: 0.12}, angular: {z: 0.18}}" >/tmp/probot-slam-drive.log 2>&1 || DRIVE_STATUS=$?
 if [[ "${DRIVE_STATUS:-0}" -ne 0 && "${DRIVE_STATUS:-0}" -ne 124 && "${DRIVE_STATUS:-0}" -ne 130 ]]; then
   echo "Velocity command failed."
   cat /tmp/probot-slam-drive.log
@@ -49,12 +49,23 @@ if [[ "${DRIVE_STATUS:-0}" -ne 0 && "${DRIVE_STATUS:-0}" -ne 124 && "${DRIVE_STA
   exit 1
 fi
 echo "Checking for a real SLAM map..."
-if ! timeout 45s ros2 topic echo --once /map nav_msgs/msg/OccupancyGrid >/tmp/probot-slam-map.log 2>&1; then
+if ! timeout 60s ros2 topic echo --once /map nav_msgs/msg/OccupancyGrid >/tmp/probot-slam-map.log 2>&1; then
   echo "SLAM Toolbox did not publish /map OccupancyGrid."
+  echo "--- ROS nodes ---"
+  ros2 node list 2>&1 || true
+  echo "--- ROS topics ---"
+  ros2 topic list -t 2>&1 || true
+  echo "--- /scan publisher/subscriber info ---"
+  ros2 topic info /scan --verbose 2>&1 || true
+  echo "--- one LiDAR message (frame_id and ranges) ---"
+  timeout 8s ros2 topic echo --once /scan sensor_msgs/msg/LaserScan 2>&1 || true
+  echo "--- SLAM node parameters ---"
+  ros2 param get /slam_toolbox scan_topic 2>&1 || true
+  ros2 param get /slam_toolbox base_frame 2>&1 || true
+  echo "--- odom to base transform ---"
+  timeout 8s ros2 run tf2_ros tf2_echo odom base_footprint 2>&1 || true
   echo "--- SLAM/Gazebo log ---"
   cat "$LOG_FILE"
-  echo "--- map topic diagnostic ---"
-  ros2 topic list 2>&1 || true
   exit 1
 fi
 grep -q "resolution:" /tmp/probot-slam-map.log
