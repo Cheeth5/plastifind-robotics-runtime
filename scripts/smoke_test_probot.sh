@@ -11,7 +11,7 @@ LOG_FILE="/tmp/probot-gazebo-smoke.log"
 rm -f "$LOG_FILE"
 
 echo "Starting headless PRO-BOT Gazebo simulation..."
-ros2 launch probot_description simulation.launch.py >"$LOG_FILE" 2>&1 &
+ros2 launch probot_model simulation.launch.py >"$LOG_FILE" 2>&1 &
 LAUNCH_PID=$!
 
 cleanup() {
@@ -38,7 +38,7 @@ while (( SECONDS < DEADLINE )); do
       /controller_manager/list_controllers \
       controller_manager_msgs/srv/ListControllers "{}" 2>&1 || true)"
 
-    ACTIVE_COUNT="$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)"
+    ACTIVE_COUNT="$(printf '%s\\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)"
     if [[ "$ACTIVE_COUNT" -ge 2 ]]; then
       break
     fi
@@ -47,10 +47,10 @@ while (( SECONDS < DEADLINE )); do
   sleep 3
 done
 
-if [[ "$(printf '%s\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)" -lt 2 ]]; then
+if [[ "$(printf '%s\\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)" -lt 2 ]]; then
   echo "Timed out waiting for active wheel controllers."
   echo "Last controller response:"
-  printf '%s\n' "$CONTROLLER_OUTPUT"
+  printf '%s\\n' "$CONTROLLER_OUTPUT"
   echo "Gazebo/ROS launch log:"
   cat "$LOG_FILE"
   exit 1

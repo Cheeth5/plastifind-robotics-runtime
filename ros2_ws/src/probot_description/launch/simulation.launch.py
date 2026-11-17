@@ -11,7 +11,7 @@ from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
-    package_dir = get_package_share_directory('probot_description')
+    package_dir = get_package_share_directory('probot_model')
     gazebo_dir = get_package_share_directory('ros_gz_sim')
 
     robot_description_file = os.path.join(
@@ -34,8 +34,7 @@ def generate_launch_description():
         value_type=str
     )
 
-    # Server-only mode is intentional: cloud CI and container execution
-    # must not require a desktop, X server, or GPU-backed GUI.
+    # Headless Gazebo server for cloud execution.
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(gazebo_dir, 'launch', 'gz_sim.launch.py')
@@ -43,6 +42,14 @@ def generate_launch_description():
         launch_arguments={
             'gz_args': ['-s -r ', world_file]
         }.items()
+    )
+
+    # Bridge simulation time from Gazebo Transport into ROS 2.
+    clock_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        output='screen'
     )
 
     robot_state_publisher = Node(
@@ -100,6 +107,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         gazebo,
+        clock_bridge,
         robot_state_publisher,
         spawn_robot,
         start_controllers
