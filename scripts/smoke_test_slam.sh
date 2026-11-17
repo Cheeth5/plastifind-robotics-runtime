@@ -40,6 +40,16 @@ if [[ "$ACTIVE" -ne 1 ]]; then
   cat "$LOG_FILE"
   exit 1
 fi
+echo "Checking SLAM parameters were loaded into the running node..."
+SCAN_PARAM="$(timeout 8s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
+BASE_PARAM="$(timeout 8s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
+printf '%s\n' "$SCAN_PARAM"
+printf '%s\n' "$BASE_PARAM"
+if ! printf '%s' "$SCAN_PARAM" | grep -q "/scan" || ! printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
+  echo "SLAM parameters are missing or incorrect; stopping before the mapping run."
+  cat "$LOG_FILE"
+  exit 1
+fi
 echo "Verifying LiDAR frame ID before mapping..."
 timeout 12s ros2 topic echo --once /scan sensor_msgs/msg/LaserScan >/tmp/probot-slam-scan.log 2>&1
 if ! grep -q "frame_id: lidar_link" /tmp/probot-slam-scan.log; then
