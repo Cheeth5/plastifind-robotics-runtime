@@ -22,9 +22,19 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# ROS 2 CLI renders ListControllers as Python-style objects:
+# ControllerState(name='...', state='active', ...). Count the two
+# required controller names explicitly; do not count output lines.
+count_required_active_controllers() {
+  printf '%s\n' "$1" |
+    grep -oE "name='(joint_state_broadcaster|diff_drive_controller)', state='active'" |
+    wc -l || true
+}
+
 echo "Waiting for ROS 2 Control and both wheel controllers..."
 DEADLINE=$((SECONDS + 150))
 CONTROLLER_OUTPUT=""
+ACTIVE_COUNT=0
 
 while (( SECONDS < DEADLINE )); do
   if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
@@ -38,7 +48,7 @@ while (( SECONDS < DEADLINE )); do
       /controller_manager/list_controllers \
       controller_manager_msgs/srv/ListControllers "{}" 2>&1 || true)"
 
-    ACTIVE_COUNT="$(printf '%s\\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)"
+    ACTIVE_COUNT="$(count_required_active_controllers "$CONTROLLER_OUTPUT")"
     if [[ "$ACTIVE_COUNT" -ge 2 ]]; then
       break
     fi
@@ -47,15 +57,16 @@ while (( SECONDS < DEADLINE )); do
   sleep 3
 done
 
-if [[ "$(printf '%s\\n' "$CONTROLLER_OUTPUT" | grep -Ec 'state[=:][[:space:]]*active|state:[[:space:]]*active' || true)" -lt 2 ]]; then
-  echo "Timed out waiting for active wheel controllers."
+if [[ "$ACTIVE_COUNT" -lt 2 ]]; then
+  echo "Timed out waiting for both required controllers to become active."
   echo "Last controller response:"
-  printf '%s\\n' "$CONTROLLER_OUTPUT"
+  printf '%s\n' "$CONTROLLER_OUTPUT"
   echo "Gazebo/ROS launch log:"
   cat "$LOG_FILE"
   exit 1
 fi
 
+echo "Both required controllers are active."
 echo "Checking simulated joint-state publication..."
 if ! timeout 20s ros2 topic echo --once /joint_states sensor_msgs/msg/JointState >/tmp/probot-joint-states.log 2>&1; then
   echo "No /joint_states message received."
