@@ -99,5 +99,13 @@ if ! timeout 30s ros2 topic echo --once /imu sensor_msgs/msg/Imu >/tmp/probot-im
   exit 1
 fi
 
+echo "Checking RGB camera image publication..."
+if ! timeout 30s ros2 topic echo --once /camera/image_raw sensor_msgs/msg/Image >/tmp/probot-camera.log 2>&1; then
+  echo "No /camera/image_raw Image message received."
+  cat "$LOG_FILE"
+  cat /tmp/probot-camera.log
+  exit 1
+fi
+
 echo "PRO-BOT Gazebo sensor smoke test PASSED."
 echo "Wheel controllers, joint states, odometry, LiDAR scan and IMU are publishing."

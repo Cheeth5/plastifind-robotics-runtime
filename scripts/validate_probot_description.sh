@@ -26,6 +26,9 @@ required_links = {
     "front_right_wheel",
     "rear_left_wheel",
     "rear_right_wheel",
+    "lidar_link",
+    "imu_link",
+    "camera_link",
 }
 
 actual_links = {link.attrib["name"] for link in root.findall("link")}
