@@ -40,13 +40,27 @@ if [[ "$ACTIVE" -ne 1 ]]; then
   cat "$LOG_FILE"
   exit 1
 fi
-echo "Checking SLAM parameters were loaded into the running node..."
-SCAN_PARAM="$(timeout 8s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
-BASE_PARAM="$(timeout 8s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
+echo "Waiting for SLAM Toolbox parameters to become available..."
+PARAMS_READY=0
+PARAM_DEADLINE=$((SECONDS + 45))
+while (( SECONDS < PARAM_DEADLINE )); do
+  SCAN_PARAM="$(timeout 5s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
+  BASE_PARAM="$(timeout 5s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
+  if printf '%s' "$SCAN_PARAM" | grep -q "/scan" && printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
+    PARAMS_READY=1
+    break
+  fi
+  sleep 3
+done
 printf '%s\n' "$SCAN_PARAM"
 printf '%s\n' "$BASE_PARAM"
-if ! printf '%s' "$SCAN_PARAM" | grep -q "/scan" || ! printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
-  echo "SLAM parameters are missing or incorrect; stopping before the mapping run."
+if [[ "$PARAMS_READY" -ne 1 ]]; then
+  echo "SLAM parameters did not become available within 45 seconds."
+  echo "--- ROS nodes ---"
+  ros2 node list 2>&1 || true
+  echo "--- SLAM parameter list ---"
+  ros2 param list /slam_toolbox 2>&1 || true
+  echo "--- SLAM launch log ---"
   cat "$LOG_FILE"
   exit 1
 fi
