@@ -6,7 +6,7 @@ import yaml
 root = pathlib.Path("/opt/plastifind/ros2_ws/src/probot_description")
 slam = yaml.safe_load((root / "config/slam_toolbox.yaml").read_text())
 nav2 = yaml.safe_load((root / "config/nav2_params.yaml").read_text())
-p = slam["/**"]["ros__parameters"]
+p = slam["slam_toolbox"]["ros__parameters"]
 assert p["mode"] == "mapping"
 assert p["scan_topic"] == "/scan"
 assert (p["map_frame"], p["odom_frame"], p["base_frame"]) == ("map", "odom", "base_footprint")

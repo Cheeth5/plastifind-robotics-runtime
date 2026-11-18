@@ -50,11 +50,19 @@ def generate_launch_description():
         executable='parameter_bridge',
         arguments=[
             '/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
-            '/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan',
             '/imu@sensor_msgs/msg/Imu[gz.msgs.IMU',
             '/camera@sensor_msgs/msg/Image[gz.msgs.Image',
             '/camera/camera_info@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo'
         ],
+        output='screen'
+    )
+
+    # Give LaserScan the exact URDF TF frame expected by SLAM.
+    scan_bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=['/scan@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan'],
+        parameters=[{'override_frame_id': 'lidar_link'}],
         output='screen'
     )
 
@@ -114,6 +122,7 @@ def generate_launch_description():
     return LaunchDescription([
         gazebo,
         clock_bridge,
+        scan_bridge,
         robot_state_publisher,
         spawn_robot,
         start_controllers
