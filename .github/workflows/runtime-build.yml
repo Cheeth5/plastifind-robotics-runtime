@@ -48,3 +48,9 @@ jobs:
           docker run --rm --network host --shm-size=1g \
             plastifind/robotics-runtime:ci \
             bash /opt/plastifind/scripts/smoke_test_slam.sh
+
+      - name: Run Nav2 autonomous navigation smoke test
+        run: |
+          docker run --rm --network host --shm-size=1g \
+            plastifind/robotics-runtime:ci \
+            bash /opt/plastifind/scripts/smoke_test_nav2.sh
