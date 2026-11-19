@@ -79,7 +79,7 @@ if [[ "$NAV_READY" -ne 1 ]]; then
   exit 1
 fi
 
-echo "Sending a real NavigateToPose goal in the mapped arena..."
+echo "Collecting velocity-chain connection diagnostics before goal..."\nfor topic in /cmd_vel_nav /cmd_vel_smoothed /diff_drive_controller/cmd_vel_unstamped /diff_drive_controller/odom; do\n  echo "--- $topic ---"\n  timeout 5s ros2 topic info -v "$topic" 2>&1 || true\ndone\n\necho "Sending a real NavigateToPose goal in the mapped arena..."
 GOAL_OUTPUT="$(timeout 100s ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: map}, pose: {position: {x: -0.5, y: 1.5, z: 0.0}, orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}}}}" 2>&1 || true)"
 printf '%s\n' "$GOAL_OUTPUT"
 if ! printf '%s' "$GOAL_OUTPUT" | grep -q 'SUCCEEDED'; then
