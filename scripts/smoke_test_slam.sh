@@ -42,14 +42,21 @@ if [[ "$ACTIVE" -ne 1 ]]; then
 fi
 echo "Waiting for SLAM Toolbox parameters to become available..."
 PARAMS_READY=0
-# ROS graph discovery can lag behind the lifecycle activation log on shared CI runners.
-# Wait for the node to appear before querying parameters; allow up to 120 seconds.
+# Query the parameter services directly. The ROS graph cache can temporarily
+# omit a live lifecycle node on loaded hosted runners, so do not gate on node list.
 PARAM_DEADLINE=$((SECONDS + 120))
+SCAN_PARAM="not queried"
+BASE_PARAM="not queried"
 while (( SECONDS < PARAM_DEADLINE )); do
-  if ros2 node list 2>/dev/null | grep -qx '/slam_toolbox'; then
-    SCAN_PARAM="$(timeout 10s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
-    BASE_PARAM="$(timeout 10s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
-    if printf '%s' "$SCAN_PARAM" | grep -q "/scan" && printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
+  if ! kill -0 "$LAUNCH_PID" 2>/dev/null; then
+    echo "Mapping launch exited while waiting for SLAM parameter services."
+    cat "$LOG_FILE"
+    exit 1
+  fi
+  SCAN_PARAM="$(timeout 8s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
+  if printf '%s' "$SCAN_PARAM" | grep -q "/scan"; then
+    BASE_PARAM="$(timeout 8s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
+    if printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
       PARAMS_READY=1
       break
     fi
@@ -59,7 +66,7 @@ done
 printf '%s\n' "$SCAN_PARAM"
 printf '%s\n' "$BASE_PARAM"
 if [[ "$PARAMS_READY" -ne 1 ]]; then
-  echo "SLAM parameters did not become available within 45 seconds."
+  echo "SLAM parameter services did not become available within 120 seconds."
   echo "--- ROS nodes ---"
   ros2 node list 2>&1 || true
   echo "--- SLAM parameter list ---"
@@ -77,7 +84,7 @@ if ! grep -q "frame_id: lidar_link" /tmp/probot-slam-scan.log; then
   exit 1
 fi
 echo "LiDAR frame is correct. Driving a controlled arc while SLAM receives scans..."
-timeout 25s ros2 topic pub -r 10 /diff_drive_controller/cmd_vel_unstamped geometry_msgs/msg/Twist "{linear: {x: 0.12}, angular: {z: 0.18}}" >/tmp/probot-slam-drive.log 2>&1 || DRIVE_STATUS=$?
+timeout 25s ros2 topic pub -r 10 /diff_drive_controller/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.12}, angular: {z: 0.18}}" >/tmp/probot-slam-drive.log 2>&1 || DRIVE_STATUS=$?
 if [[ "${DRIVE_STATUS:-0}" -ne 0 && "${DRIVE_STATUS:-0}" -ne 124 && "${DRIVE_STATUS:-0}" -ne 130 ]]; then
   echo "Velocity command failed."
   cat /tmp/probot-slam-drive.log
