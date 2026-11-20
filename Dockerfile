@@ -36,7 +36,10 @@ RUN chmod +x /entrypoint.sh \
     /opt/plastifind/scripts/validate_slam_config.py \
     && source /opt/ros/jazzy/setup.bash \
     && cd /opt/plastifind/ros2_ws \
-    && rosdep update \
+    && (sed -i '/osx-homebrew\.yaml/d' /etc/ros/rosdep/sources.list.d/*.list 2>/dev/null || true) \
+    && updated=0 \
+    && for attempt in 1 2 3 4 5; do if rosdep update; then updated=1; break; fi; echo "rosdep update attempt $attempt failed; retrying..."; sleep $((attempt * 5)); done \
+    && test "$updated" = 1 \
     && rosdep install --from-paths src --ignore-src -r -y \
     && colcon build --symlink-install \
     && /opt/plastifind/scripts/validate_probot_description.sh \
