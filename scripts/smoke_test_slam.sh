@@ -42,13 +42,17 @@ if [[ "$ACTIVE" -ne 1 ]]; then
 fi
 echo "Waiting for SLAM Toolbox parameters to become available..."
 PARAMS_READY=0
-PARAM_DEADLINE=$((SECONDS + 45))
+# ROS graph discovery can lag behind the lifecycle activation log on shared CI runners.
+# Wait for the node to appear before querying parameters; allow up to 120 seconds.
+PARAM_DEADLINE=$((SECONDS + 120))
 while (( SECONDS < PARAM_DEADLINE )); do
-  SCAN_PARAM="$(timeout 5s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
-  BASE_PARAM="$(timeout 5s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
-  if printf '%s' "$SCAN_PARAM" | grep -q "/scan" && printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
-    PARAMS_READY=1
-    break
+  if ros2 node list 2>/dev/null | grep -qx '/slam_toolbox'; then
+    SCAN_PARAM="$(timeout 10s ros2 param get /slam_toolbox scan_topic 2>&1 || true)"
+    BASE_PARAM="$(timeout 10s ros2 param get /slam_toolbox base_frame 2>&1 || true)"
+    if printf '%s' "$SCAN_PARAM" | grep -q "/scan" && printf '%s' "$BASE_PARAM" | grep -q "base_footprint"; then
+      PARAMS_READY=1
+      break
+    fi
   fi
   sleep 3
 done
