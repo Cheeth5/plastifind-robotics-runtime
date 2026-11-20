@@ -49,7 +49,7 @@ if [[ "$NAV_READY" -ne 1 ]]; then
   exit 1
 fi
 echo "Collecting velocity-chain connection diagnostics before goal..."
-for topic in /cmd_vel_nav /cmd_vel_smoothed /diff_drive_controller/cmd_vel_unstamped /diff_drive_controller/odom; do
+for topic in /cmd_vel_nav /cmd_vel_smoothed /diff_drive_controller/cmd_vel /diff_drive_controller/cmd_vel_unstamped /diff_drive_controller/odom; do
   echo "--- $topic ---"
   timeout 5s ros2 topic info -v "$topic" 2>&1 || true
 done
