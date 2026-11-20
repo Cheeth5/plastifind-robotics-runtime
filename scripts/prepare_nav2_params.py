@@ -36,7 +36,9 @@ params["behavior_server"]["ros__parameters"]["local_frame"] = "odom"
 params["behavior_server"]["ros__parameters"]["global_frame"] = "map"
 params["velocity_smoother"]["ros__parameters"]["odom_topic"] = "/diff_drive_controller/odom"
 params["collision_monitor"]["ros__parameters"]["base_frame_id"] = "base_footprint"
-params["collision_monitor"]["ros__parameters"]["cmd_vel_out_topic"] = "/diff_drive_controller/cmd_vel_unstamped"
+# ros2_control diff_drive_controller subscribes in its namespace on ~/cmd_vel.
+# With use_stamped_vel=false this is geometry_msgs/Twist at /diff_drive_controller/cmd_vel.
+params["collision_monitor"]["ros__parameters"]["cmd_vel_out_topic"] = "/diff_drive_controller/cmd_vel"
 params["docking_server"]["ros__parameters"]["base_frame"] = "base_footprint"
 params["docking_server"]["ros__parameters"]["fixed_frame"] = "odom"
 
